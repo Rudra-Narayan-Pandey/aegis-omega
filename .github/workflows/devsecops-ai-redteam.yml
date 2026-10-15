@@ -1,0 +1,40 @@
+name: AegisAgent Omega - DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  sast-and-iac-scanning:
+    name: Semgrep & Checkov
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep (AST Code Security)
+        run: |
+          pip install semgrep
+          semgrep scan --config auto services/
+
+      - name: Run Checkov (IaC Scanner)
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: all
+
+  container-security:
+    name: Aqua Trivy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Aqua Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
