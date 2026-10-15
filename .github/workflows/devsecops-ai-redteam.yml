@@ -5,6 +5,9 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+# Strict read-only enforcement for CKV2_GHA_1
+permissions: read-all
+
 jobs:
   sast-and-iac-scanning:
     name: Semgrep & Checkov
