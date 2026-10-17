@@ -1,0 +1,19 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: aegis-l7-ebpf-shield
+spec:
+  endpointSelector:
+    matchLabels:
+      app: aegis-gateway
+  ingress:
+  - toPorts:
+    - ports:
+      - port: "8000"
+        protocol: TCP
+      rules:
+        http:
+        - method: "POST"
+          path: "/api/v1/gateway/inspect"
+        - method: "GET"
+          path: "/health"

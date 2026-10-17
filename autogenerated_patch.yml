@@ -1,0 +1,7 @@
+rules:
+  - id: auto-generated-block-sql_injection
+    patterns:
+      - pattern: "DROP TABLE $TABLE"
+    message: "Autonomous patch: Blocked SQL_INJECTION attempt"
+    severity: ERROR
+    languages: [python, sql]
