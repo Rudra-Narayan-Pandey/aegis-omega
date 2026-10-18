@@ -2,10 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: aegis-gateway
+  namespace: default
   labels:
     app: aegis-gateway
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: aegis-gateway
@@ -14,24 +15,44 @@ spec:
       labels:
         app: aegis-gateway
     spec:
+      # CKV_K8S_38: Ensure that Service Account Tokens are only mounted where necessary
+      automountServiceAccountToken: false
+
+      # CKV_K8S_29 & CKV_K8S_40 & CKV_K8S_31: Pod-level Security Context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001          # High UID to avoid host conflicts (CKV_K8S_40)
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault    # Enforce default seccomp profile (CKV_K8S_31)
+
       containers:
-      - name: gateway
-        image: aegis-gateway:latest
-        imagePullPolicy: Never
+      - name: aegis-gateway
+        # CKV_K8S_43: Use immutable image digest alongside the tag
+        image: aegis-gateway:latest@sha256:ae9ea21f7427fe24bc6ea7247eb552157a1b0a431744045d3f641545ca71d11b
+        
+        # CKV_K8S_15: Image Pull Policy should be Always
+        imagePullPolicy: Always
+
         ports:
         - containerPort: 8000
-        env:
-        - name: HOME
-          value: /tmp
+          name: http
+
+        # CKV_K8S_28 & CKV_K8S_29: Container-level Security Context
         securityContext:
           allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 1000
           readOnlyRootFilesystem: true
-        volumeMounts:
-        - name: tmp-dir
-          mountPath: /tmp
-      volumes:
-      - name: tmp-dir
-        emptyDir: {}
+          capabilities:
+            drop:
+            - ALL
+            - NET_RAW             # Minimize NET_RAW capability (CKV_K8S_28)
+
+        # CKV_K8S_11, 12, 13: Resource requests and limits
+        resources:
+          limits:
+            cpu: "500m"           # CKV_K8S_11: CPU limits set
+            memory: "512Mi"       # CKV_K8S_13: Memory limits set
+          requests:
+            cpu: "100m"
+            memory: "128Mi"       # CKV_K8S_12: Memory requests set
